@@ -249,7 +249,7 @@
         ping(origin).then(function (online) {
           if (online) {
             setState("online", "Бот в сети", "Открываем приложение…");
-            window.location.replace(appUrl(origin));
+            fullscreenReady.then(function () { window.location.replace(appUrl(origin)); });
             return;
           }
           setState("offline", "Бот сейчас отдыхает",
@@ -258,11 +258,39 @@
         });
       }
 
+      // На компьютере открываемся во весь экран сразу на витрине: после перехода
+      // на адрес бота Telegram может уже не принять запрос, а режим сохраняется.
+      // Крестик в полноэкранном режиме сначала сворачивает в окно — тогда закрываем сразу.
+      var DESKTOP_PLATFORMS = ["tdesktop", "macos", "web", "weba", "webk"];
+      var FULLSCREEN_WAIT_MS = 800;
+
+      function enterFullscreen() {
+        return new Promise(function (resolve) {
+          var canFullscreen = tg && DESKTOP_PLATFORMS.indexOf(tg.platform) !== -1 &&
+            tg.isVersionAtLeast && tg.isVersionAtLeast("8.0") && typeof tg.requestFullscreen === "function";
+          if (!canFullscreen || tg.isFullscreen) { resolve(); return; }
+          var wasFullscreen = false;
+          var timer = setTimeout(resolve, FULLSCREEN_WAIT_MS);
+          function settle() { clearTimeout(timer); resolve(); }
+          tg.onEvent("fullscreenChanged", function () {
+            if (tg.isFullscreen) { wasFullscreen = true; settle(); }
+            else if (wasFullscreen) tg.close();
+          });
+          tg.onEvent("fullscreenFailed", function () {
+            if (tg.isFullscreen) wasFullscreen = true; // уже во весь экран
+            settle();
+          });
+          try { tg.requestFullscreen(); } catch (e) { settle(); }
+        });
+      }
+
+      var fullscreenReady = Promise.resolve();
       if (tg) {
         try {
           tg.ready();
           tg.expand();
           if (tg.isVersionAtLeast && tg.isVersionAtLeast("6.1")) { tg.setHeaderColor("#0c0c10"); tg.setBackgroundColor("#0c0c10"); }
+          fullscreenReady = enterFullscreen();
         } catch (e) { /* вне Telegram — просто страница */ }
       }
 
