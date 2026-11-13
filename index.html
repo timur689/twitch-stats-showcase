@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Twitch Stats</title>
+  <meta name="description" content="Точная статистика Twitch-каналов в Telegram: онлайн каждую минуту, рейтинг, чаттеры, золотые моменты и рейды.">
+  <meta name="theme-color" content="#0c0c10">
+  <!-- Запоминаем параметры запуска до telegram-web-app.js: их нужно передать приложению бота как есть -->
+  <script>window.__launch = { search: location.search, hash: location.hash };</script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700;800&display=swap">
+  <style>
+    :root {
+      --bg: #09090b; --cream: 243, 238, 229; --text: rgb(var(--cream)); --text-2: #bdb8ae; --hint: #86827b;
+      --glass: rgba(22, 22, 26, 0.62); --border: rgba(var(--cream), 0.1); --live: #ff453a; --ok: #3ccf7e; --warn: #e0a83a;
+      --font: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; --display: "Unbounded", var(--font);
+      --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0; min-height: 100vh; color: var(--text); font: 15px/1.5 var(--font); -webkit-font-smoothing: antialiased;
+      background:
+        radial-gradient(ellipse 80% 45% at 50% 0%, rgba(120, 100, 200, 0.22), transparent 70%),
+        radial-gradient(ellipse 70% 30% at 50% 100%, rgba(255, 120, 90, 0.08), transparent 70%),
+        linear-gradient(180deg, #0c0c10, #09090b 60%, #070708);
+    }
+    #stars { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+    main { max-width: 1040px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)); }
+
+    .top { display: flex; align-items: center; gap: 10px; margin-bottom: clamp(36px, 8vw, 72px); }
+    .logo { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(var(--cream), 0.16); display: grid; place-items: center; }
+    .brand { font: 600 14px var(--display); letter-spacing: -0.02em; }
+
+    .hero { text-align: center; }
+    .hero h1 { margin: 0 0 16px; font: 800 clamp(38px, 9vw, 86px)/0.98 var(--display); letter-spacing: -0.05em; text-wrap: balance; }
+    .hero h1 .sheen {
+      background: linear-gradient(100deg, var(--text) 0 38%, #ff8a7a 48%, #c9b8ff 56%, var(--text) 66% 100%);
+      background-size: 260% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: sheen 7s ease-in-out infinite;
+    }
+    @keyframes sheen { 0%, 20% { background-position: 100% 0; } 60%, 100% { background-position: 0 0; } }
+    .hero p { max-width: 520px; margin: 0 auto; color: var(--text-2); font-size: 16px; text-wrap: balance; }
+
+    .status {
+      display: flex; align-items: center; gap: 16px; max-width: 560px; margin: 32px auto 0; padding: 18px 20px; text-align: left;
+      border-radius: 22px; background: var(--glass); border: 1px solid var(--border);
+      -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); transition: border-color 0.4s var(--ease);
+    }
+    .status .dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--hint); }
+    .status[data-state="checking"] .dot { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
+    .status[data-state="offline"] { border-color: rgba(224, 168, 58, 0.3); }
+    .status[data-state="offline"] .dot { background: var(--warn); }
+    .status[data-state="online"] { border-color: rgba(60, 207, 126, 0.4); }
+    .status[data-state="online"] .dot { background: var(--ok); box-shadow: 0 0 12px var(--ok); }
+    .status b { display: block; font: 600 16px/1.3 var(--display); letter-spacing: -0.02em; }
+    .status span { display: block; margin-top: 3px; color: var(--hint); font-size: 13.5px; }
+    .status .grow { flex: 1; min-width: 0; }
+    .btn {
+      flex: none; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; cursor: pointer;
+      background: var(--text); color: #0b0b0d; font: 600 14px var(--font); text-decoration: none;
+      display: inline-flex; align-items: center; transition: transform 0.15s var(--ease), opacity 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; }
+    @keyframes pulse { 50% { opacity: 0.35; } }
+
+    .section { margin-top: clamp(64px, 12vw, 110px); }
+    .section h2 { margin: 0 0 8px; font: 800 clamp(30px, 7vw, 60px)/1 var(--display); letter-spacing: -0.05em; text-transform: lowercase; }
+    .section > p { margin: 0 0 26px; color: var(--hint); max-width: 520px; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .feature {
+      padding: 20px; border-radius: 22px; background: var(--glass); border: 1px solid var(--border);
+      -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+      transition: transform 0.3s var(--ease), border-color 0.3s var(--ease);
+    }
+    .feature:hover { transform: translateY(-3px); border-color: rgba(var(--cream), 0.22); }
+    .feature .ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: rgba(var(--cream), 0.08); margin-bottom: 14px; }
+    .feature b { display: block; font: 600 16px/1.3 var(--display); letter-spacing: -0.03em; }
+    .feature p { margin: 6px 0 0; color: var(--hint); font-size: 13.5px; }
+
+    .preview { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .mock { padding: 20px; border-radius: 24px; background: var(--glass); border: 1px solid var(--border); position: relative; overflow: hidden; }
+    .mock .tag { position: absolute; right: 16px; top: 16px; padding: 3px 9px; border-radius: 999px; background: rgba(var(--cream), 0.1); color: var(--hint); font-size: 11.5px; }
+    .mock .who { display: flex; align-items: center; gap: 12px; }
+    .mock .av { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(145deg, #f97316, #db2777); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--live); }
+    .mock .name { font: 600 16px var(--display); letter-spacing: -0.03em; }
+    .mock .meta { color: var(--hint); font-size: 13px; }
+    .mock .big { margin-top: 18px; font: 700 40px/1 var(--display); letter-spacing: -0.045em; }
+    .mock .big small { display: block; margin-top: 8px; font: 400 12.5px var(--font); letter-spacing: 0; color: var(--hint); }
+    .mock svg { display: block; width: 100%; height: 70px; margin-top: 16px; }
+    .moment { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(var(--cream), 0.1); }
+    .moment:first-of-type { border-top: 0; }
+    .moment .e { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: rgba(var(--cream), 0.08); font-size: 19px; }
+    .moment .t { margin-left: auto; padding: 3px 9px; border-radius: 9px; background: rgba(var(--cream), 0.12); font: 700 14px var(--display); }
+    .moment small { display: block; color: var(--hint); font-size: 12.5px; }
+
+    footer { margin-top: 72px; text-align: center; color: var(--hint); font-size: 13px; }
+    footer a { color: var(--text-2); }
+
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); }
+    .reveal.in { opacity: 1; transform: none; }
+
+    @media (max-width: 480px) {
+      .status { flex-wrap: wrap; }
+      .status .grow { flex-basis: calc(100% - 28px); }
+      .status .btn { width: 100%; justify-content: center; }
+    }
+    @media (min-width: 720px) {
+      main { padding-left: 32px; padding-right: 32px; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .preview { grid-template-columns: 1.1fr 1fr; }
+    }
+    @media (min-width: 960px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (prefers-reduced-motion: reduce) {
+      .sheen, .status .dot { animation: none !important; }
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .feature { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <main>
+    <div class="top">
+      <div class="logo" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+      </div>
+      <span class="brand">twitch stats</span>
+    </div>
+
+    <section class="hero">
+      <h1>Twitch <span class="sheen">статистика</span></h1>
+      <p>Точный онлайн каждую минуту, рост, чаттеры и лучшие моменты стримов — прямо в Telegram.</p>
+      <div class="status" id="status" data-state="checking" role="status" aria-live="polite">
+        <i class="dot" aria-hidden="true"></i>
+        <div class="grow"><b id="status-title">Подключаемся к боту…</b><span id="status-text">Проверяем, в сети ли он.</span></div>
+        <button class="btn" id="retry" type="button" hidden>Проверить</button>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <h2>что умеет бот</h2>
+      <p>Добавьте канал Twitch — бот раз в минуту замеряет онлайн и читает чат. Ваши каналы видите только вы.</p>
+      <div class="grid">
+        <div class="feature"><div class="ico">📈</div><b>Честный онлайн</b><p>Средний онлайн взвешен по времени, пик, часы просмотра и покрытие замерами.</p></div>
+        <div class="feature"><div class="ico">🏆</div><b>Рейтинг каналов</b><p>Сравнение по онлайну, росту и вовлечённости — с подсказкой о возможной накрутке.</p></div>
+        <div class="feature"><div class="ico">💬</div><b>Чаттеры</b><p>Кто пишет в чате каждого канала, сколько и что — с историей сообщений.</p></div>
+        <div class="feature"><div class="ico">🎬</div><b>Золотые моменты</b><p>Всплески чата и реакций с таймкодами — готовые точки для TikTok и Shorts.</p></div>
+        <div class="feature"><div class="ico">🎮</div><b>Игры и удержание</b><p>На какой игре онлайн растёт, на какой падает, и недельный отчёт в Telegram.</p></div>
+        <div class="feature"><div class="ico">🚀</div><b>Рейды</b><p>Кто рейдит канал, сколько зрителей приводит и сколько остаётся через 15 минут.</p></div>
+        <div class="feature"><div class="ico">💎</div><b>Донаты</b><p>Битсы и подписки на стриме: сколько пришло, от кого и на какую сумму.</p></div>
+        <div class="feature"><div class="ico">↗️</div><b>Карточки</b><p>Красивая картинка со статистикой — в чат, в историю Telegram или в галерею.</p></div>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <h2>как это выглядит</h2>
+      <p>Так выглядят экраны приложения. Цифры ниже — пример, а не данные реального канала.</p>
+      <div class="preview">
+        <div class="mock">
+          <span class="tag">пример</span>
+          <div class="who"><div class="av" aria-hidden="true"></div><div><div class="name">ВашКанал</div><div class="meta">Just Chatting · идёт 1 ч 42 мин</div></div></div>
+          <div class="big">2 113<small>зрителей сейчас</small></div>
+          <svg viewBox="0 0 300 70" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(243,238,229)" stop-opacity=".28"/><stop offset="1" stop-color="rgb(243,238,229)" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0 58 L20 54 L40 50 L60 44 L80 46 L100 36 L120 30 L140 33 L160 22 L180 18 L200 24 L220 14 L240 20 L260 12 L280 16 L300 10 L300 70 L0 70Z" fill="url(#fill)"/>
+            <path d="M0 58 L20 54 L40 50 L60 44 L80 46 L100 36 L120 30 L140 33 L160 22 L180 18 L200 24 L220 14 L240 20 L260 12 L280 16 L300 10" fill="none" stroke="rgb(243,238,229)" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="mock">
+          <span class="tag">пример</span>
+          <div class="name" style="margin-bottom:8px">Золотые моменты</div>
+          <div class="moment"><span class="e">😂</span><div>Смех<small>чат ×8,4 · 227 реакций</small></div><span class="t">22:29</span></div>
+          <div class="moment"><span class="e">🔥</span><div>Хайп<small>чат ×4,9 · 42 реакции</small></div><span class="t">59:29</span></div>
+          <div class="moment"><span class="e">🎬</span><div>Чат просит клип<small>чат ×4,5 · 13 реакций</small></div><span class="t">1:10:29</span></div>
+        </div>
+      </div>
+    </section>
+
+    <footer>Twitch Stats · <a id="bot-link" href="https://t.me/MyStatstwitch_bot">@MyStatstwitch_bot</a></footer>
+  </main>
+
+  <script>
+    // Витрина и «пусковая площадка»: проверяем, в сети ли бот, и если да — открываем его приложение.
+    (function () {
+      var tg = window.Telegram && window.Telegram.WebApp;
+      var RETRY_MS = 20000;
+      var PING_TIMEOUT_MS = 5000;
+      // Куда можно перенаправлять: только https и только адреса туннеля или сервера бота
+      var ALLOWED_HOSTS = [/\.trycloudflare\.com$/, /\.sslip\.io$/, /\.nip\.io$/];
+
+      var el = {
+        status: document.getElementById("status"),
+        title: document.getElementById("status-title"),
+        text: document.getElementById("status-text"),
+        retry: document.getElementById("retry"),
+      };
+
+      function setState(state, title, text) {
+        el.status.dataset.state = state;
+        el.title.textContent = title;
+        el.text.textContent = text;
+        el.retry.hidden = state !== "offline";
+      }
+
+      function backendOrigin() {
+        var raw = new URLSearchParams(window.__launch.search).get("backend");
+        if (!raw) return null;
+        try {
+          var url = new URL(raw);
+          if (url.protocol !== "https:") return null;
+          var ok = ALLOWED_HOSTS.some(function (re) { return re.test(url.hostname); });
+          return ok ? url.origin : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // Адрес приложения: параметры запуска (кроме backend) и данные Telegram из # передаём как есть.
+      function appUrl(origin) {
+        var params = new URLSearchParams(window.__launch.search);
+        params.delete("backend");
+        var query = params.toString();
+        return origin + "/" + (query ? "?" + query : "") + window.__launch.hash;
+      }
+
+      // Проверка картинкой: не нужен CORS, а упавший туннель отдаёт ошибку или молчит.
+      function ping(origin) {
+        return new Promise(function (resolve) {
+          var img = new Image();
+          var timer = setTimeout(function () { img.src = ""; resolve(false); }, PING_TIMEOUT_MS);
+          img.onload = function () { clearTimeout(timer); resolve(true); };
+          img.onerror = function () { clearTimeout(timer); resolve(false); };
+          img.src = origin + "/static/img/logo.svg?ping=" + Date.now();
+        });
+      }
+
+      var origin = backendOrigin();
+      var retryTimer = null;
+
+      function check() {
+        clearTimeout(retryTimer);
+        setState("checking", "Подключаемся к боту…", "Проверяем, в сети ли он.");
+        ping(origin).then(function (online) {
+          if (online) {
+            setState("online", "Бот в сети", "Открываем приложение…");
+            window.location.replace(appUrl(origin));
+            return;
+          }
+          setState("offline", "Бот сейчас отдыхает",
+            "Сбор статистики на паузе. Как только бот вернётся, эта страница сама откроет приложение.");
+          retryTimer = setTimeout(check, RETRY_MS);
+        });
+      }
+
+      if (tg) {
+        try {
+          tg.ready();
+          tg.expand();
+          if (tg.isVersionAtLeast && tg.isVersionAtLeast("6.1")) { tg.setHeaderColor("#0c0c10"); tg.setBackgroundColor("#0c0c10"); }
+        } catch (e) { /* вне Telegram — просто страница */ }
+      }
+
+      el.retry.addEventListener("click", check);
+      if (origin) {
+        check();
+      } else {
+        // Открыли витрину напрямую, не из бота
+        setState("idle", "Откройте бота в Telegram", "Там появится кнопка «Статистика» — она откроет приложение.");
+        var open = document.createElement("a");
+        open.className = "btn";
+        open.href = document.getElementById("bot-link").href;
+        open.textContent = "Открыть";
+        el.status.appendChild(open);
+      }
+
+      // Появление разделов при прокрутке
+      var io = "IntersectionObserver" in window ? new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+      }, { threshold: 0.12 }) : null;
+      document.querySelectorAll(".reveal").forEach(function (s) { io ? io.observe(s) : s.classList.add("in"); });
+
+      // Звёзды на фоне
+      var canvas = document.getElementById("stars");
+      var ctx = canvas.getContext("2d");
+      var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var stars = [];
+      function resize() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = innerWidth * dpr;
+        canvas.height = innerHeight * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        stars = Array.from({ length: Math.round(innerWidth * innerHeight / 9000) }, function () {
+          return { x: Math.random() * innerWidth, y: Math.random() * innerHeight, r: 0.4 + Math.random() * 1.3, p: Math.random() * 6.28, s: 0.4 + Math.random() };
+        });
+      }
+      function draw(t) {
+        ctx.clearRect(0, 0, innerWidth, innerHeight);
+        stars.forEach(function (s) {
+          var a = still ? 0.5 : 0.25 + 0.45 * (0.5 + 0.5 * Math.sin(t / 1000 * s.s + s.p));
+          ctx.fillStyle = "rgba(243,238,229," + a.toFixed(3) + ")";
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, 6.283);
+          ctx.fill();
+        });
+        if (!still) requestAnimationFrame(draw);
+      }
+      resize();
+      addEventListener("resize", resize);
+      requestAnimationFrame(draw);
+    })();
+  </script>
+</body>
+</html>
