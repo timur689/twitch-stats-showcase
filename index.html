@@ -21,16 +21,36 @@
       color-scheme: dark;
     }
     * { box-sizing: border-box; }
-    html { background: var(--bg); }
-    body {
-      margin: 0; min-height: 100vh; color: var(--text); font: 15px/1.5 var(--font); -webkit-font-smoothing: antialiased;
+    /* Фон — у html, а не у body: фон body рисуется поверх холста со звёздами (z-index: -1) и прячет их */
+    html {
       background:
         radial-gradient(ellipse 80% 45% at 50% 0%, rgba(120, 100, 200, 0.22), transparent 70%),
         radial-gradient(ellipse 70% 30% at 50% 100%, rgba(255, 120, 90, 0.08), transparent 70%),
         linear-gradient(180deg, #0c0c10, #09090b 60%, #070708);
+      background-color: var(--bg);
     }
+    body { margin: 0; min-height: 100vh; color: var(--text); font: 15px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
     #stars { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-    main { max-width: 1040px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)); }
+    main { max-width: 1040px; margin: 0 auto; padding: 0 16px calc(40px + env(safe-area-inset-bottom)); }
+
+    /* Первый экран: звёздное небо, холмик и странник, который лежит и смотрит на звёзды */
+    .scene {
+      --land: clamp(190px, 36vh, 380px); position: relative; min-height: 100vh; min-height: 100svh; display: flex; overflow: hidden;
+      /* Свечение у горизонта за холмом: на его фоне читаются силуэты */
+      background: radial-gradient(ellipse 75% 32% at 58% calc(100% - var(--land) * 0.55),
+        rgba(150, 128, 235, 0.34), rgba(100, 88, 190, 0.12) 45%, transparent 75%);
+    }
+    .scene-inner {
+      position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; width: 100%; max-width: 1040px; margin: 0 auto;
+      padding: calc(28px + env(safe-area-inset-top)) 16px calc(var(--land) * 0.92);
+    }
+    .scene .hero { margin: auto 0; }
+    .land {
+      position: absolute; left: 0; right: 0; bottom: -1px; height: var(--land); pointer-events: none;
+      /* Низ холма растворяется в звёздном небе, по которому прокручивается остальная страница */
+      -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent); mask-image: linear-gradient(to bottom, #000 62%, transparent);
+    }
+    .land svg { display: block; width: 100%; height: 100%; }
 
     .top { display: flex; align-items: center; gap: 10px; margin-bottom: clamp(36px, 8vw, 72px); }
     .logo { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(var(--cream), 0.16); display: grid; place-items: center; }
@@ -72,16 +92,6 @@
     .section { margin-top: clamp(64px, 12vw, 110px); }
     .section h2 { margin: 0 0 8px; font: 800 clamp(30px, 7vw, 60px)/1 var(--display); letter-spacing: -0.05em; text-transform: lowercase; }
     .section > p { margin: 0 0 26px; color: var(--hint); max-width: 520px; }
-    .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-    .feature {
-      padding: 20px; border-radius: 22px; background: var(--glass); border: 1px solid var(--border);
-      -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
-      transition: transform 0.3s var(--ease), border-color 0.3s var(--ease);
-    }
-    .feature:hover { transform: translateY(-3px); border-color: rgba(var(--cream), 0.22); }
-    .feature .ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: rgba(var(--cream), 0.08); margin-bottom: 14px; }
-    .feature b { display: block; font: 600 16px/1.3 var(--display); letter-spacing: -0.03em; }
-    .feature p { margin: 6px 0 0; color: var(--hint); font-size: 13.5px; }
 
     .preview { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .mock { padding: 20px; border-radius: 24px; background: var(--glass); border: 1px solid var(--border); position: relative; overflow: hidden; }
@@ -111,21 +121,19 @@
       .status .btn { width: 100%; justify-content: center; }
     }
     @media (min-width: 720px) {
-      main { padding-left: 32px; padding-right: 32px; }
-      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      main, .scene-inner { padding-left: 32px; padding-right: 32px; }
       .preview { grid-template-columns: 1.1fr 1fr; }
     }
-    @media (min-width: 960px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     @media (prefers-reduced-motion: reduce) {
       .sheen, .status .dot { animation: none !important; }
       .reveal { opacity: 1; transform: none; transition: none; }
-      .feature { transition: none; }
     }
   </style>
 </head>
 <body>
   <canvas id="stars" aria-hidden="true"></canvas>
-  <main>
+  <header class="scene">
+    <div class="scene-inner">
     <div class="top">
       <div class="logo" aria-hidden="true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
@@ -142,22 +150,36 @@
         <button class="btn" id="retry" type="button" hidden>Проверить</button>
       </div>
     </section>
+    </div>
 
-    <section class="section reveal">
-      <h2>что умеет бот</h2>
-      <p>Добавьте канал Twitch — бот раз в минуту замеряет онлайн и читает чат. Ваши каналы видите только вы.</p>
-      <div class="grid">
-        <div class="feature"><div class="ico">📈</div><b>Честный онлайн</b><p>Средний онлайн взвешен по времени, пик, часы просмотра и покрытие замерами.</p></div>
-        <div class="feature"><div class="ico">🏆</div><b>Рейтинг каналов</b><p>Сравнение по онлайну, росту и вовлечённости — с подсказкой о возможной накрутке.</p></div>
-        <div class="feature"><div class="ico">💬</div><b>Чаттеры</b><p>Кто пишет в чате каждого канала, сколько и что — с историей сообщений.</p></div>
-        <div class="feature"><div class="ico">🎬</div><b>Золотые моменты</b><p>Всплески чата и реакций с таймкодами — готовые точки для TikTok и Shorts.</p></div>
-        <div class="feature"><div class="ico">🎮</div><b>Игры и удержание</b><p>На какой игре онлайн растёт, на какой падает, и недельный отчёт в Telegram.</p></div>
-        <div class="feature"><div class="ico">🚀</div><b>Рейды</b><p>Кто рейдит канал, сколько зрителей приводит и сколько остаётся через 15 минут.</p></div>
-        <div class="feature"><div class="ico">💎</div><b>Донаты</b><p>Битсы и подписки на стриме: сколько пришло, от кого и на какую сумму.</p></div>
-        <div class="feature"><div class="ico">↗️</div><b>Карточки</b><p>Красивая картинка со статистикой — в чат, в историю Telegram или в галерею.</p></div>
-      </div>
-    </section>
+    <div class="land" aria-hidden="true">
+      <svg viewBox="310 50 960 230" preserveAspectRatio="xMidYMid slice">
+        <path d="M-10 330 L-10 198 C180 168 330 150 470 164 C600 177 640 204 720 199 C820 193 900 150 1060 140 C1200 131 1330 164 1450 174 L1450 330 Z" fill="#16141f"/>
+        <path d="M-10 330 L-10 238 C150 222 290 213 420 221 C520 227 560 240 620 240 C700 240 1000 232 1120 214 C1240 198 1350 206 1450 214 L1450 330 Z" fill="#0f0e16"/>
 
+        <!-- Странник: лежит на спине, руки за головой, одно колено поднято; рядом шляпа и посох с котомкой -->
+        <g fill="#08080a">
+          <path d="M850 160 L866 92 L869.5 93 L854.5 160 Z"/>
+          <path d="M866 96 C860 97 857 103 858 109 C859 116 866 119 872 117 C879 115 882 108 880 102 C878 97 872 95 866 96 Z"/>
+          <path d="M865 97 L870 90 L873 92 L869 98 Z"/>
+          <g transform="translate(764 151) rotate(-2.4)">
+            <circle cx="44" cy="-7" r="6.5"/>
+            <path d="M30 -10 L47 -21 C49 -22 52 -20 51 -17 L42 -9 Z"/>
+            <path d="M38 4 L38 -6 C38 -9 33 -12 26 -12 L-2 -10 C-6 -9.5 -8 -6 -8 4 Z"/>
+            <path d="M-6 -9 L-48 -5 C-51 -5 -52 -9 -55 -9 C-58 -9 -58 -4 -57 4 L-6 4 Z"/>
+            <path d="M-4 -10 L-24 -30 C-26 -32 -30 -31 -31 -28 L-42 -6 L-48 -6 L-49 4 L-36 4 L-36 -1 L-27 -18 L-10 4 Z"/>
+            <ellipse cx="70" cy="-1" rx="10" ry="2.2"/>
+            <path d="M63 -1 C63 -9 77 -9 77 -1 Z"/>
+          </g>
+        </g>
+
+        <path d="M-10 330 L-10 262 C200 255 430 236 570 196 C650 172 700 152 762 149 C828 146 890 160 975 192 C1110 240 1300 258 1450 254 L1450 330 Z"
+          fill="#08080a" stroke="rgba(243,238,229,0.16)" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+      </svg>
+    </div>
+  </header>
+
+  <main>
     <section class="section reveal">
       <h2>как это выглядит</h2>
       <p>Так выглядят экраны приложения. Цифры ниже — пример, а не данные реального канала.</p>
@@ -313,35 +335,167 @@
       }, { threshold: 0.12 }) : null;
       document.querySelectorAll(".reveal").forEach(function (s) { io ? io.observe(s) : s.classList.add("in"); });
 
-      // Звёзды на фоне
-      var canvas = document.getElementById("stars");
+      startSky(document.getElementById("stars"));
+    })();
+
+    // Звёздное небо: Млечный Путь, мерцающие звёзды-искры и редкие падающие звёзды.
+    function startSky(canvas) {
       var ctx = canvas.getContext("2d");
+      if (!ctx) return;
       var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      var stars = [];
+      var TINTS = ["243,238,229", "201,179,255", "190,226,255"];
+      var TINT_ROLL = [0.8, 0.93];         // доли тёплых белых и сиреневых, остальные — ледяные
+      var STAR_AREA = 3600;                // CSS-пикселей² неба на одну мерцающую звезду
+      var DUST_AREA = 650;                 // и на одну пылинку Млечного Пути
+      var SPARKLE_SHARE = 0.05;            // столько звёзд — крупные искры с лучами
+      var SPRITE_PX = 64;
+      var METEOR_GAP_MS = [5000, 13000];   // пауза между падающими звёздами
+      var METEOR_MS = 950;
+      var w = 0, h = 0, dpr = 1, stars = [], milkyWay = null, meteor = null, nextMeteor = 0;
+      var sprites = TINTS.map(makeSprite);
+
+      function makeSprite(color) {
+        var c = document.createElement("canvas");
+        c.width = c.height = SPRITE_PX;
+        var g = c.getContext("2d");
+        var r = SPRITE_PX / 2;
+        var glow = g.createRadialGradient(r, r, 0, r, r, r);
+        glow.addColorStop(0, "rgba(" + color + ",0.55)");
+        glow.addColorStop(0.25, "rgba(" + color + ",0.15)");
+        glow.addColorStop(1, "rgba(" + color + ",0)");
+        g.fillStyle = glow;
+        g.fillRect(0, 0, SPRITE_PX, SPRITE_PX);
+        g.translate(r, r);
+        g.fillStyle = "rgb(" + color + ")";
+        g.beginPath();
+        for (var i = 0; i < 4; i++) {
+          var a = i * Math.PI / 2;
+          g.lineTo(Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.62);
+          g.lineTo(Math.cos(a + Math.PI / 4) * r * 0.1, Math.sin(a + Math.PI / 4) * r * 0.1);
+        }
+        g.closePath();
+        g.fill();
+        return c;
+      }
+
+      function tint() {
+        var roll = Math.random();
+        return roll < TINT_ROLL[0] ? 0 : roll < TINT_ROLL[1] ? 1 : 2;
+      }
+
+      // Середина Млечного Пути: полоса идёт снизу слева вверх направо
+      function bandY(x) { return h * (0.7 - 0.6 * x / w); }
+      function gauss() { return Math.random() + Math.random() + Math.random() - 1.5; }
+
+      function paintMilkyWay() {
+        var c = document.createElement("canvas");
+        c.width = Math.round(w * dpr);
+        c.height = Math.round(h * dpr);
+        var g = c.getContext("2d");
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var bw = Math.min(w, h) * 0.16;
+        for (var i = 0; i <= 14; i++) {
+          var x = (i / 14) * w;
+          var y = bandY(x) + gauss() * bw * 0.3;
+          var glow = g.createRadialGradient(x, y, 0, x, y, bw * 1.7);
+          glow.addColorStop(0, i % 2 ? "rgba(150,130,230,0.06)" : "rgba(150,190,240,0.045)");
+          glow.addColorStop(1, "rgba(120,110,200,0)");
+          g.fillStyle = glow;
+          g.fillRect(x - bw * 1.7, y - bw * 1.7, bw * 3.4, bw * 3.4);
+        }
+        var dust = Math.round(w * h / DUST_AREA);
+        for (var j = 0; j < dust; j++) {
+          var dx = Math.random() * w;
+          g.globalAlpha = 0.08 + Math.random() * 0.3;
+          g.fillStyle = "rgb(" + TINTS[tint()] + ")";
+          var size = 0.5 + Math.random() * 0.7;
+          g.fillRect(dx, bandY(dx) + gauss() * bw, size, size);
+        }
+        return c;
+      }
+
       function resize() {
-        var dpr = Math.min(window.devicePixelRatio || 1, 2);
-        canvas.width = innerWidth * dpr;
-        canvas.height = innerHeight * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        stars = Array.from({ length: Math.round(innerWidth * innerHeight / 9000) }, function () {
-          return { x: Math.random() * innerWidth, y: Math.random() * innerHeight, r: 0.4 + Math.random() * 1.3, p: Math.random() * 6.28, s: 0.4 + Math.random() };
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = innerWidth;
+        h = innerHeight;
+        if (!w || !h) return; // окно ещё не получило размер (Telegram раскрывается) — дождёмся resize
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        milkyWay = paintMilkyWay();
+        stars = Array.from({ length: Math.round(w * h / STAR_AREA) }, function () {
+          return {
+            x: Math.random() * w, y: Math.random() * h, r: 0.35 + Math.pow(Math.random(), 2) * 1.2,
+            tint: tint(), p: Math.random() * 6.28, s: 0.4 + Math.random() * 1.4,
+            sparkle: Math.random() < SPARKLE_SHARE, size: 7 + Math.random() * 9,
+          };
         });
+        if (still) draw(0);
       }
+
+      function drawStar(s, t) {
+        var a = still ? 0.6 : 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t / 1000 * s.s + s.p));
+        ctx.globalAlpha = a;
+        if (s.sparkle) {
+          ctx.drawImage(sprites[s.tint], s.x - s.size / 2, s.y - s.size / 2, s.size, s.size);
+          return;
+        }
+        ctx.fillStyle = "rgb(" + TINTS[s.tint] + ")";
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, 6.283);
+        ctx.fill();
+      }
+
+      function drawMeteor(t) {
+        if (!meteor && t >= nextMeteor) {
+          var angle = (200 + Math.random() * 20) * Math.PI / 180;
+          meteor = { x: w * (0.25 + Math.random() * 0.7), y: h * Math.random() * 0.35, dx: Math.cos(angle), dy: -Math.sin(angle), born: t, run: Math.min(w, h) * 0.45 };
+        }
+        if (!meteor) return;
+        var k = (t - meteor.born) / METEOR_MS;
+        if (k >= 1) {
+          meteor = null;
+          nextMeteor = t + METEOR_GAP_MS[0] + Math.random() * (METEOR_GAP_MS[1] - METEOR_GAP_MS[0]);
+          return;
+        }
+        var hx = meteor.x + meteor.dx * meteor.run * k;
+        var hy = meteor.y + meteor.dy * meteor.run * k;
+        var tail = 90 + 60 * Math.sin(Math.PI * k);
+        var trail = ctx.createLinearGradient(hx, hy, hx - meteor.dx * tail, hy - meteor.dy * tail);
+        trail.addColorStop(0, "rgba(243,238,229,0.9)");
+        trail.addColorStop(1, "rgba(201,179,255,0)");
+        ctx.globalAlpha = Math.sin(Math.PI * k);
+        ctx.strokeStyle = trail;
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(hx - meteor.dx * tail, hy - meteor.dy * tail);
+        ctx.stroke();
+      }
+
       function draw(t) {
-        ctx.clearRect(0, 0, innerWidth, innerHeight);
-        stars.forEach(function (s) {
-          var a = still ? 0.5 : 0.25 + 0.45 * (0.5 + 0.5 * Math.sin(t / 1000 * s.s + s.p));
-          ctx.fillStyle = "rgba(243,238,229," + a.toFixed(3) + ")";
-          ctx.beginPath();
-          ctx.arc(s.x, s.y, s.r, 0, 6.283);
-          ctx.fill();
-        });
-        if (!still) requestAnimationFrame(draw);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        if (!milkyWay) return;
+        ctx.globalAlpha = 1;
+        ctx.drawImage(milkyWay, 0, 0, w, h);
+        for (var i = 0; i < stars.length; i++) drawStar(stars[i], t);
+        if (!still) drawMeteor(t);
+        ctx.globalAlpha = 1;
       }
+
+      function loop(t) {
+        draw(t);
+        requestAnimationFrame(loop);
+      }
+
       resize();
       addEventListener("resize", resize);
-      requestAnimationFrame(draw);
-    })();
+      if (!still) {
+        nextMeteor = performance.now() + 2500;
+        requestAnimationFrame(loop);
+      }
+    }
   </script>
 </body>
 </html>
