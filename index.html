@@ -89,31 +89,8 @@
     .btn:disabled { opacity: 0.5; }
     @keyframes pulse { 50% { opacity: 0.35; } }
 
-    .section { margin-top: clamp(64px, 12vw, 110px); }
-    .section h2 { margin: 0 0 8px; font: 800 clamp(30px, 7vw, 60px)/1 var(--display); letter-spacing: -0.05em; text-transform: lowercase; }
-    .section > p { margin: 0 0 26px; color: var(--hint); max-width: 520px; }
-
-    .preview { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-    .mock { padding: 20px; border-radius: 24px; background: var(--glass); border: 1px solid var(--border); position: relative; overflow: hidden; }
-    .mock .tag { position: absolute; right: 16px; top: 16px; padding: 3px 9px; border-radius: 999px; background: rgba(var(--cream), 0.1); color: var(--hint); font-size: 11.5px; }
-    .mock .who { display: flex; align-items: center; gap: 12px; }
-    .mock .av { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(145deg, #f97316, #db2777); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--live); }
-    .mock .name { font: 600 16px var(--display); letter-spacing: -0.03em; }
-    .mock .meta { color: var(--hint); font-size: 13px; }
-    .mock .big { margin-top: 18px; font: 700 40px/1 var(--display); letter-spacing: -0.045em; }
-    .mock .big small { display: block; margin-top: 8px; font: 400 12.5px var(--font); letter-spacing: 0; color: var(--hint); }
-    .mock svg { display: block; width: 100%; height: 70px; margin-top: 16px; }
-    .moment { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(var(--cream), 0.1); }
-    .moment:first-of-type { border-top: 0; }
-    .moment .e { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: rgba(var(--cream), 0.08); font-size: 19px; }
-    .moment .t { margin-left: auto; padding: 3px 9px; border-radius: 9px; background: rgba(var(--cream), 0.12); font: 700 14px var(--display); }
-    .moment small { display: block; color: var(--hint); font-size: 12.5px; }
-
-    footer { margin-top: 72px; text-align: center; color: var(--hint); font-size: 13px; }
+    footer { margin-top: 8px; text-align: center; color: var(--hint); font-size: 13px; }
     footer a { color: var(--text-2); }
-
-    .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); }
-    .reveal.in { opacity: 1; transform: none; }
 
     @media (max-width: 480px) {
       .status { flex-wrap: wrap; }
@@ -122,11 +99,9 @@
     }
     @media (min-width: 720px) {
       main, .scene-inner { padding-left: 32px; padding-right: 32px; }
-      .preview { grid-template-columns: 1.1fr 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
       .sheen, .status .dot { animation: none !important; }
-      .reveal { opacity: 1; transform: none; transition: none; }
     }
   </style>
 </head>
@@ -180,30 +155,6 @@
   </header>
 
   <main>
-    <section class="section reveal">
-      <h2>как это выглядит</h2>
-      <p>Так выглядят экраны приложения. Цифры ниже — пример, а не данные реального канала.</p>
-      <div class="preview">
-        <div class="mock">
-          <span class="tag">пример</span>
-          <div class="who"><div class="av" aria-hidden="true"></div><div><div class="name">ВашКанал</div><div class="meta">Just Chatting · идёт 1 ч 42 мин</div></div></div>
-          <div class="big">2 113<small>зрителей сейчас</small></div>
-          <svg viewBox="0 0 300 70" preserveAspectRatio="none" aria-hidden="true">
-            <defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(243,238,229)" stop-opacity=".28"/><stop offset="1" stop-color="rgb(243,238,229)" stop-opacity="0"/></linearGradient></defs>
-            <path d="M0 58 L20 54 L40 50 L60 44 L80 46 L100 36 L120 30 L140 33 L160 22 L180 18 L200 24 L220 14 L240 20 L260 12 L280 16 L300 10 L300 70 L0 70Z" fill="url(#fill)"/>
-            <path d="M0 58 L20 54 L40 50 L60 44 L80 46 L100 36 L120 30 L140 33 L160 22 L180 18 L200 24 L220 14 L240 20 L260 12 L280 16 L300 10" fill="none" stroke="rgb(243,238,229)" stroke-width="2"/>
-          </svg>
-        </div>
-        <div class="mock">
-          <span class="tag">пример</span>
-          <div class="name" style="margin-bottom:8px">Золотые моменты</div>
-          <div class="moment"><span class="e">😂</span><div>Смех<small>чат ×8,4 · 227 реакций</small></div><span class="t">22:29</span></div>
-          <div class="moment"><span class="e">🔥</span><div>Хайп<small>чат ×4,9 · 42 реакции</small></div><span class="t">59:29</span></div>
-          <div class="moment"><span class="e">🎬</span><div>Чат просит клип<small>чат ×4,5 · 13 реакций</small></div><span class="t">1:10:29</span></div>
-        </div>
-      </div>
-    </section>
-
     <footer>Twitch Stats · <a id="bot-link" href="https://t.me/MyStatstwitch_bot">@MyStatstwitch_bot</a></footer>
   </main>
 
@@ -329,11 +280,6 @@
         el.status.appendChild(open);
       }
 
-      // Появление разделов при прокрутке
-      var io = "IntersectionObserver" in window ? new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
-      }, { threshold: 0.12 }) : null;
-      document.querySelectorAll(".reveal").forEach(function (s) { io ? io.observe(s) : s.classList.add("in"); });
 
       startSky(document.getElementById("stars"));
     })();
